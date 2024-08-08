@@ -1,12 +1,13 @@
-import { Prisma, PrismaClient } from "@prisma/client";
+import { Admin, Prisma } from "@prisma/client";
 import { adminSearchAbleFields } from "./admin.constant";
-const prisma = new PrismaClient();
+import { paginationHelper } from "../../../helpers/paginationHelper";
+import prisma from '../../../shared/prisma';
+import { waitForDebugger } from "inspector";
 
 const getAllFromDB = async (params: any, options: any) => {
-    const {limit, page } = options;
+    const {page, limit, skip } = paginationHelper.calculatePagination(options);
     const {searchTerm, ...filterData} = params
     const andConditions: Prisma.AdminWhereInput[] = [];
-
 
     console.log(filterData)
     if (params.searchTerm) {
@@ -35,11 +36,52 @@ const getAllFromDB = async (params: any, options: any) => {
     }
     const result = await prisma.admin.findMany({
         where: whereConditions,
-        skip: ()
+        skip: (Number(page) -1) * limit,
+        take: limit,
+        orderBy: options.sortBy && options.sortOrder ? 
+        {
+            [options.sortBy]: options.sortOrder
+        } : {
+            createdAt: 'desc'
+        }
     });
+
+    const total = await prisma.admin.count({
+        where: whereConditions
+    })
+    return {
+       meta:{
+        page,
+        limit,
+        total
+       },
+        data: result
+    };
+};
+const getByIdFromDB = async (id: string) => {
+    const result = await prisma.admin.findUnique({
+        where: {
+            id
+        }
+    })
+return result;
+
+    console.log('getByIdFromDB')
+} 
+
+const updateIntoDB = async(id: string, data: Partial<Admin>)=>{
+    const result = await prisma.admin.update({
+        where: {
+            id
+        },
+        data
+    });
+    
     return result;
 }
 
 export const AdminService = {
-    getAllFromDB
+    getAllFromDB,
+    getByIdFromDB,
+    updateIntoDB
 }
