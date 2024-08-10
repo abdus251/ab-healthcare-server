@@ -2,11 +2,13 @@ import express, { Application, NextFunction, Request, Response } from "express";
 import cors from 'cors';
 import router from './app/routes/index'
 import httpStatus from "http-status";
-import { error } from "console";
 import globalErrorHandler from './app/middlewares/globalErrorHandler'
+import cookieParser from 'cookie-parser';
+
 
 const app: Application = express();
 app.use(cors());
+app.use(cookieParser())
 
 // parser
 app.use(express.json());

@@ -42,10 +42,38 @@ const loginUser = async (payload: {
     };
 };
 
-const refreshToken = async(token:string)=>{
-    console.log('refreshToken ', token)
-}
+const refreshToken = async (token: string) => {
+    let decodedData;
+    try {
+        decodedData = jwt.verify(token, 'abcdefghijklmnop'); // Verify the refresh token
+    } catch (err) {
+        throw new Error("You are not authorized");
+    }
+
+    const userData = await prisma.user.findUnique({
+        where: {
+            email: decodedData?.email
+        }
+    });
+
+    if (!userData) {
+        throw new Error("User not found");
+    }
+
+    const newAccessToken = jwtHelpers.generateToken({
+        email: userData.email,
+        role: userData.role
+    },
+    "abcdefg", // Replace with your actual secret
+    "5m"
+    );
+
+    return {
+        accessToken: newAccessToken,
+    };
+};
 
 export const authServices = {
-    loginUser
+    loginUser,
+    refreshToken // Ensure refreshToken is included in the export
 };

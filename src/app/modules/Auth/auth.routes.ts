@@ -9,8 +9,8 @@ router.post(
 );
 
 router.post(
-    '/login',
-    AuthController.loginUser
+    '/refresh-token',
+    AuthController.refreshToken
 );
 
 export const AuthRoutes = router;
