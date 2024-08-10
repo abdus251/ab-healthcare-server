@@ -1,18 +1,35 @@
 import express, { NextFunction } from 'express';
 import { AdminController } from './admin.controller';
+import { AnyZodObject, z } from "zod";
 
 const router = express.Router();
 
-const validateRequest = (req: Request, res: Response, next: NextFunction ) => {
-console.log("Data: ", req.body)
-next();
-}
+const update = z.object({
+    body: z.object({
+        name: z.string().optional(),
+        contactNumber: z.string().optional()
+    })
+})
+
+const validateRequest = (schema: AnyZodObject) => 
+   async (req: Request, res: Response, next: NextFunction ) => {
+    try{
+        await schema.parseAsync({
+        body: req.body
+    })
+       return next();
+    }
+    catch (err) {
+        next(err)
+    }
+        }
+
 
 router.get('/', AdminController.getAllFromDB);
 
 router.get('/:id', AdminController.getByIdFromDB);
 
-router.patch('/:id', validateRequest, AdminController.updateIntoDB);
+router.patch('/:id', validateRequest(update), AdminController.updateIntoDB);
 
 router.delete('/:id', AdminController.deleteFromDB);
 
