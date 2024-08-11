@@ -1,7 +1,9 @@
 import * as bcrypt from 'bcrypt';
 import prisma from "../../../shared/prisma";
-import jwt from 'jsonwebtoken';
+import jwt, { JwtPayload, Secret } from 'jsonwebtoken';
 import { jwtHelpers } from '../../../helpers/jwtHelpers'; // Correctly import jwtHelpers
+import { UserStatus } from '@prisma/client';
+import config from '../../../config';
 
 const loginUser = async (payload: {
     email: string,
@@ -9,7 +11,8 @@ const loginUser = async (payload: {
 }) => {
     const userData = await prisma.user.findUniqueOrThrow({
         where: {
-            email: payload.email
+            email: payload.email,
+            status: UserStatus.ACTIVE
         }
     });
 
@@ -18,22 +21,20 @@ const loginUser = async (payload: {
     if (!inCorrectPassword) {
         throw new Error("Password is incorrect");
     }
-
     const accessToken = jwtHelpers.generateToken({
         email: userData.email,
         role: userData.role
     },
-    "abcdefg", // Replace with your actual secret
-    "5m"
+        config.jwt.jwt_secret as Secret,
+        config.jwt.expires_in as string
     );
 
     const refreshToken = jwtHelpers.generateToken({
         email: userData.email,
         role: userData.role
     },
-    "abcdefghijklmnop", // Replace with your actual secret
-    "30d"
-    );
+        config.jwt.jwt_secret as Secret,
+        config.jwt.expires_in as string);
 
     return {
         accessToken,
@@ -45,14 +46,15 @@ const loginUser = async (payload: {
 const refreshToken = async (token: string) => {
     let decodedData;
     try {
-        decodedData = jwt.verify(token, 'abcdefghijklmnop'); // Verify the refresh token
+        decodedData = jwtHelpers.verifyToken(token, 'abcdefghijklmnop');
     } catch (err) {
         throw new Error("You are not authorized");
     }
 
-    const userData = await prisma.user.findUnique({
+    const userData = await prisma.user.findUniqueOrThrow({
         where: {
-            email: decodedData?.email
+            email: decodedData.email,
+            status: UserStatus.ACTIVE
         }
     });
 
@@ -64,12 +66,13 @@ const refreshToken = async (token: string) => {
         email: userData.email,
         role: userData.role
     },
-    "abcdefg", // Replace with your actual secret
-    "5m"
+        config.jwt.jwt_secret as Secret,
+        config.jwt.expires_in as string
     );
 
     return {
         accessToken: newAccessToken,
+        needPasswordChange: userData.needPasswordChange
     };
 };
 
