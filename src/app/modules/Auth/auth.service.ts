@@ -120,6 +120,10 @@ config.jwt.reset_pass_secret as Secret,
 config.jwt.reset_pass_token_expires_in as string
 )
 console.log(resetPassToken)
+
+const resetPassLink = config.reset_pass_link + `?userId=${userData.email}&token=${resetPassToken}`
+
+console.log(resetPassLink)
 }
 
 export const authServices = {
